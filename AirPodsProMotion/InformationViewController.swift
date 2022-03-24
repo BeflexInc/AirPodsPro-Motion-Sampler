@@ -7,8 +7,9 @@
 
 import UIKit
 import CoreMotion
+import CoreLocation
 
-class InformationViewController: UIViewController, CMHeadphoneMotionManagerDelegate {
+class InformationViewController: UIViewController, CMHeadphoneMotionManagerDelegate, CLLocationManagerDelegate {
 
     lazy var textView: UITextView = {
         let view = UITextView()
@@ -22,10 +23,9 @@ class InformationViewController: UIViewController, CMHeadphoneMotionManagerDeleg
     }()
     
     
+    let cmManager = CMHeadphoneMotionManager()
     
-    //AirPods Pro => APP :)
-    let APP = CMHeadphoneMotionManager()
-    
+    let locationManager = CLLocationManager()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,19 +33,27 @@ class InformationViewController: UIViewController, CMHeadphoneMotionManagerDeleg
         view.backgroundColor = .systemBackground
         view.addSubview(textView)
         
+        var prevTime : Date = Date()
         
-        APP.delegate = self
+        cmManager.delegate = self
+        locationManager.delegate = self
         
-        guard APP.isDeviceMotionAvailable else {
+        guard cmManager.isDeviceMotionAvailable else {
             self.Alert("Sorry", "Your device is not supported.")
             textView.text = "Sorry, Your device is not supported."
             return
         }
         
-        APP.startDeviceMotionUpdates(to: OperationQueue.current!, withHandler: {[weak self] motion, error  in
+        locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.requestAlwaysAuthorization()
+        
+        cmManager.startDeviceMotionUpdates(to: OperationQueue.current!, withHandler: {[weak self] motion, error  in
             guard let motion = motion, error == nil else { return }
+            print(String(Int((prevTime.timeIntervalSinceNow.truncatingRemainder(dividingBy: 1)) * 1000)) + "ms")
+            prevTime = Date()
             self?.printData(motion)
         })
+        locationManager.startUpdatingLocation()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -53,39 +61,23 @@ class InformationViewController: UIViewController, CMHeadphoneMotionManagerDeleg
     }
     
     override func viewWillDisappear(_ animated: Bool) {
-        APP.stopDeviceMotionUpdates()
+        cmManager.stopDeviceMotionUpdates()
     }
     
     
     func printData(_ data: CMDeviceMotion) {
-        print(data)
+//        print(data)
         self.textView.text = """
-            Quaternion:
-                x: \(data.attitude.quaternion.x)
-                y: \(data.attitude.quaternion.y)
-                z: \(data.attitude.quaternion.z)
-                w: \(data.attitude.quaternion.w)
-            Attitude:
-                pitch: \(data.attitude.pitch)
-                roll: \(data.attitude.roll)
-                yaw: \(data.attitude.yaw)
-            Gravitational Acceleration:
-                x: \(data.gravity.x)
-                y: \(data.gravity.y)
-                z: \(data.gravity.z)
-            Rotation Rate:
-                x: \(data.rotationRate.x)
-                y: \(data.rotationRate.y)
-                z: \(data.rotationRate.z)
             Acceleration:
                 x: \(data.userAcceleration.x)
                 y: \(data.userAcceleration.y)
                 z: \(data.userAcceleration.z)
-            Magnetic Field:
-                field: \(data.magneticField.field)
-                accuracy: \(data.magneticField.accuracy)
             Heading:
                 \(data.heading)
             """
     }
+    
+//    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+//        print("Location updated")
+//    }
 }

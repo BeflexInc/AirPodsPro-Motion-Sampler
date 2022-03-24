@@ -8,8 +8,9 @@
 import Foundation
 import UIKit
 import CoreMotion
+import CoreLocation
 
-class ExportCSVViewController: UIViewController, CMHeadphoneMotionManagerDelegate {
+class ExportCSVViewController: UIViewController, CMHeadphoneMotionManagerDelegate, CLLocationManagerDelegate {
     
     lazy var button: UIButton = {
         let button = UIButton(type: .system)
@@ -37,8 +38,8 @@ class ExportCSVViewController: UIViewController, CMHeadphoneMotionManagerDelegat
     }()
     
     
-    //AirPods Pro => APP :)
-    let APP = CMHeadphoneMotionManager()
+    let cmManager = CMHeadphoneMotionManager()
+    let clManager = CLLocationManager()
     
     let writer = CSVWriter()
     let f = DateFormatter()
@@ -56,33 +57,38 @@ class ExportCSVViewController: UIViewController, CMHeadphoneMotionManagerDelegat
         
         f.dateFormat = "yyyyMMdd_HHmmss"
 
-        APP.delegate = self
+        cmManager.delegate = self
+        clManager.delegate = self
+        
+        clManager.allowsBackgroundLocationUpdates = true
+        clManager.requestAlwaysAuthorization()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         write = false
         writer.close()
-        APP.stopDeviceMotionUpdates()
+        cmManager.stopDeviceMotionUpdates()
         button.setTitle("Start", for: .normal)
     }
     
     func start() {
-        guard APP.isDeviceMotionAvailable else {
+        guard cmManager.isDeviceMotionAvailable else {
             self.Alert("Sorry", "Your device is not supported.")
             return
         }
-        APP.startDeviceMotionUpdates(to: OperationQueue.current!, withHandler: {[weak self] motion, error  in
+        cmManager.startDeviceMotionUpdates(to: OperationQueue.current!, withHandler: {[weak self] motion, error  in
             guard let motion = motion, error == nil else { return }
                 self?.writer.write(motion)
             self?.printData(motion)
         })
+        clManager.startUpdatingLocation()
     }
     
     @objc func Tap() {
         if write {
             write.toggle()
             writer.close()
-            APP.stopDeviceMotionUpdates()
+            cmManager.stopDeviceMotionUpdates()
             button.setTitle("Start", for: .normal)
         } else {
             write.toggle()

@@ -13,6 +13,7 @@ import CoreMotion
 
 
 class CSVWriter {
+    let dateFormatter = DateFormatter()
     
     var file: FileHandle?
     
@@ -29,6 +30,7 @@ class CSVWriter {
     
     func header(){
         let header = """
+                    Time,\
                     QuaternionX,QuaternionY,QuaternionZ,QuaternionW,\
                     AttitudePitch,AttitudeRoll,AttitudeYaw,\
                     GravitationalAccelerationX,GravitationalAccelerationY,GravitationalAccelerationZ,\
@@ -40,7 +42,10 @@ class CSVWriter {
     
     func write(_ motion: CMDeviceMotion) {
         guard let file = self.file else { return }
+        dateFormatter.dateFormat = "HH:mm:ss.SSSS"
+        
         var text = """
+                \(dateFormatter.string(from: Date())),\
                 \(motion.attitude.quaternion.x),\(motion.attitude.quaternion.y),\(motion.attitude.quaternion.z),\(motion.attitude.quaternion.w),\
                 \(motion.attitude.pitch),\(motion.attitude.roll),\(motion.attitude.yaw),\
                 \(motion.gravity.x),\(motion.gravity.y),\(motion.gravity.z),\
